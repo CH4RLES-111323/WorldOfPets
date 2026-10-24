@@ -105,7 +105,7 @@ function renderBookings(){
 
 function renderTripRequests(){
   el('trip-request-list').innerHTML=tripRequests.length?tripRequests.map((r,i)=>{
-    const isAccepted=r.status==='accepted';
+    const isConverted=bookings.some(b=>b.reference_code===r.reference_code);
     return `<article class="item">
       <div class="actions">
         <h3>${esc(r.origin)} → ${esc(r.destination)}</h3>
@@ -120,9 +120,17 @@ function renderTripRequests(){
         <label style="max-width:170px;margin:0">Status
           <select data-trip-request="${i}" style="height:45px" aria-label="Status for ${esc(r.reference_code)}">${['pending','accepted','declined'].map(s=>`<option value="${s}" ${r.status===s?'selected':''}>${esc(statusName(s))}</option>`).join('')}</select>
         </label>
-        <button class="btn secondary" data-convert-request="${i}" type="button" style="height:45px">
-          ${isAccepted ? 'Create Open Trip & Booking' : 'Accept & Create Open Trip'}
-        </button>
+        ${isConverted ? `
+          <div style="display:flex;align-items:center;height:45px">
+            <span class="badge" style="background:#e6f9ed;color:#137333;font-weight:700;padding:10px 14px;border-radius:12px;font-size:13px">
+              ✓ Converted to Trip &amp; Booking
+            </span>
+          </div>
+        ` : r.status !== 'declined' ? `
+          <button class="btn secondary" data-convert-request="${i}" type="button" style="height:45px">
+            Create Open Trip &amp; Booking
+          </button>
+        ` : ''}
       </div>
     </article>`;
   }).join(''):'<p class="muted">No custom trip requests yet.</p>';
@@ -161,6 +169,18 @@ el('login-form').addEventListener('submit',async e=>{
     if(!r.ok)throw new Error(result.msg||result.message||'Email or password was not accepted.');
     session={access_token:result.access_token,refresh_token:result.refresh_token,expires_at:Date.now()+Number(result.expires_in||3600)*1000};
     sessionStorage.setItem(sessionKey,JSON.stringify(session));setSignedIn(true);showNote('login-note','');await refresh();
+        // Immediately update UI for the converted request to avoid flash
+        // Find the button that triggered conversion (if still present) and replace it with a converted badge
+        const btn = document.querySelector(`button[data-convert-request="${f.elements.request_id.value}"]`);
+        if (btn) {
+          const badge = document.createElement('span');
+          badge.className = 'badge';
+          badge.style.cssText = 'background:#e6f9ed;color:#137333;font-weight:700;padding:10px 14px;border-radius:12px;font-size:13px';
+          badge.textContent = '✓ Converted to Trip & Booking';
+          const container = btn.parentElement;
+          container.innerHTML = '';
+          container.appendChild(badge);
+        }
   }catch(err){showNote('login-note',err.message,true)}finally{btn.disabled=false}
 });
 
@@ -252,6 +272,18 @@ el('convert-form').addEventListener('submit',async e=>{
     el('convert-modal').close();
     showNote('trip-note','Custom request converted! Published to calendar and added to Booking Requests.');
     await refresh();
+        // Immediately update UI for the converted request to avoid flash
+        // Find the button that triggered conversion (if still present) and replace it with a converted badge
+        const btn = document.querySelector(`button[data-convert-request="${f.elements.request_id.value}"]`);
+        if (btn) {
+          const badge = document.createElement('span');
+          badge.className = 'badge';
+          badge.style.cssText = 'background:#e6f9ed;color:#137333;font-weight:700;padding:10px 14px;border-radius:12px;font-size:13px';
+          badge.textContent = '✓ Converted to Trip & Booking';
+          const container = btn.parentElement;
+          container.innerHTML = '';
+          container.appendChild(badge);
+        }
   }catch(err){
     showNote('convert-note',err.message,true);
   }finally{btn.disabled=false}
