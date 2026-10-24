@@ -112,7 +112,7 @@ const today=new Date();today.setHours(0,0,0,0);
 function tripOn(d,trips){return trips.find(t=>t.trip_date===dateKey(d))||null}
 function normalizeTrip(t){const left=Number(t.available),capacity=Number(t.capacity);return{...t,date:dateFromKey(t.trip_date),a:t.origin,b:t.destination,fee:Number(t.fare_php),booked:Number(t.booked),left,capacity,status:left===0?'Fully booked':left<=2?'Nearly full':'Available',time:new Date(t.departure_at).toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit'})}}
 const dot=s=>s==='Available'?'st-a':s==='Nearly full'?'st-n':'st-f';
-function Calendar({trips,loading,error,sel,setSel,onBook}){
+function Calendar({trips,loading,error,sel,setSel,onBook,onRequest}){
  const [m,setM]=useState(new Date(sel.getFullYear(),sel.getMonth(),1));
  useEffect(()=>setM(new Date(sel.getFullYear(),sel.getMonth(),1)),[sel]);
  const lead=m.getDay(),n=new Date(m.getFullYear(),m.getMonth()+1,0).getDate(),trip=tripOn(sel,trips);
@@ -131,7 +131,7 @@ function Calendar({trips,loading,error,sel,setSel,onBook}){
    <div className="meta"><span className="pill">{fmt(sel)}</span><span className="pill">Departs {trip.time}</span><span className="pill">via {trip.via}</span></div>
    <div className="bar"><b style={{width:trip.booked/trip.capacity*100+'%'}}/></div>
    <div className="go"><span><b>{trip.status}</b>: {trip.left} of {trip.capacity} slots left. ₱{trip.fee.toLocaleString()} per pet</span>
-   <button className="btn" disabled={trip.left===0} onClick={()=>onBook(trip)}>{trip.left===0?'Fully booked':'Book this trip'}</button></div></>:<p style={{margin:0,color:'var(--soft)'}}>No trip on this day. Pick a day with a dot.</p>}</div></div>)}
+   <button className="btn" disabled={trip.left===0} onClick={()=>onBook(trip)}>{trip.left===0?'Fully booked':'Book this trip'}</button></div></>:<div><p style={{margin:'0 0 8px',color:'var(--soft)'}}>No public trip on this day. Need a different route or date?</p><button className="btn ghost" type="button" onClick={onRequest}>Request a trip</button></div>}</div></div>)}
 function Booking({trip,onClose,onDone}){
  const [s,setS]=useState(1),[f,setF]=useState({type:'Dog',breed:'',age:'',weight:'',cage:'own',name:'',phone:'',pickup:'',dropoff:'',health:false,terms:false}),[res,setRes]=useState(null),[submitting,setSubmitting]=useState(false),[submitError,setSubmitError]=useState('');
  const set=k=>e=>setF({...f,[k]:e.target.type==='checkbox'?e.target.checked:e.target.value});
@@ -167,11 +167,44 @@ function Booking({trip,onClose,onDone}){
    <div className="found"><h3>{res.code}</h3><p style={{margin:'8px 0 0'}}>{res.route}, {res.date}<br/>{res.type}, {res.breed} · Total ₱{res.total.toLocaleString()}</p></div>
    <p>We will call {res.phone} to confirm.</p><div className="acts"><a className="btn ghost" href="#track" onClick={onClose}>Track a booking</a><button className="btn" onClick={onClose}>Done</button></div></>}
  </div></div>)}
+function TripRequest({onClose}){
+ const todayManila=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+ const [f,setF]=useState({origin:'',destination:'',via:'',preferred_date:'',type:'Dog',breed:'',age:'',weight:'',cage:'own',name:'',phone:'',pickup:'',dropoff:'',health:false,terms:false});
+ const [result,setResult]=useState(null),[submitting,setSubmitting]=useState(false),[submitError,setSubmitError]=useState('');
+ const set=k=>e=>setF({...f,[k]:e.target.type==='checkbox'?e.target.checked:e.target.value});
+ useEffect(()=>{const k=e=>e.key==='Escape'&&onClose();addEventListener('keydown',k);return()=>removeEventListener('keydown',k)},[]);
+ useLayoutEffect(()=>{if(!matchMedia('(prefers-reduced-motion: reduce)').matches)gsap.from('.mod',{y:40,opacity:0,duration:.5,ease:'power3.out'})},[]);
+ const submit=async e=>{e.preventDefault();setSubmitting(true);setSubmitError('');try{
+  const response=await fetch('/api/trip-requests',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({origin:f.origin,destination:f.destination,via:f.via,preferred_date:f.preferred_date,customer_name:f.name,customer_phone:f.phone,pickup_address:f.pickup,dropoff_address:f.dropoff,pet_type:f.type,breed:f.breed,age:f.age,weight_kg:f.weight,cage_option:f.cage,health_confirmed:f.health,terms_confirmed:f.terms})});
+  const body=await response.json().catch(()=>({}));if(!response.ok)throw new Error(body.error||'Could not send your trip request. Please try again.');setResult({...body.request,notification:body.notification});
+ }catch(error){setSubmitError(error.message||'Could not send your trip request. Please try again.')}finally{setSubmitting(false)}};
+ return(<div className="ov" onMouseDown={e=>e.target===e.currentTarget&&onClose()}><div className="mod" role="dialog" aria-modal="true" aria-label="Request a trip">
+  {!result?<><h2>Request a trip</h2><p className="sub">Tell us where and when you need to travel. This is a request, not a confirmed trip or reserved space. The owner will contact you to discuss availability.</p>
+   <form onSubmit={submit}>
+    <label>Origin<input required maxLength="120" autoFocus value={f.origin} onChange={set('origin')} placeholder="e.g. Surallah"/></label>
+    <label>Destination<input required maxLength="120" value={f.destination} onChange={set('destination')} placeholder="e.g. General Santos"/></label>
+    <label className="full">Via (optional)<input maxLength="250" value={f.via} onChange={set('via')} placeholder="e.g. Koronadal"/></label>
+    <label className="full">Preferred travel date<input required type="date" min={todayManila} value={f.preferred_date} onChange={set('preferred_date')}/></label>
+    <label>Type of animal<select value={f.type} onChange={set('type')}>{['Dog','Cat','Rabbit','Bird','Other'].map(o=><option key={o}>{o}</option>)}</select></label>
+    <label>Breed<input required maxLength="120" value={f.breed} onChange={set('breed')}/></label>
+    <label>Age<input required maxLength="40" value={f.age} onChange={set('age')} placeholder="e.g. 3 years"/></label>
+    <label>Weight (kg)<input required type="number" min="0.1" max="499" step="0.1" value={f.weight} onChange={set('weight')}/></label>
+    <label className="full">Cage<select value={f.cage} onChange={set('cage')}><option value="own">I have my own cage</option><option value="rent">I may need a cage rental (+₱300 if available)</option></select></label>
+    <label>Full name<input required maxLength="120" value={f.name} onChange={set('name')} autoComplete="name"/></label>
+    <label>Mobile number<input required type="tel" maxLength="40" value={f.phone} onChange={set('phone')} autoComplete="tel"/></label>
+    <label className="full">Pickup address<input required maxLength="500" value={f.pickup} onChange={set('pickup')}/></label>
+    <label className="full">Drop-off address<input required maxLength="500" value={f.dropoff} onChange={set('dropoff')}/></label>
+    <label className="chk full"><input required type="checkbox" checked={f.health} onChange={set('health')}/>I confirm my pet is healthy and fit to travel.</label>
+    <label className="chk full"><input required type="checkbox" checked={f.terms} onChange={set('terms')}/>I understand this request is not a confirmed booking. World of Pets will contact me to discuss availability.</label>
+    {submitError&&<p className="full err" role="alert">{submitError}</p>}
+    <div className="full acts"><button type="button" className="btn ghost" disabled={submitting} onClick={onClose}>Cancel</button><button className="btn" type="submit" disabled={submitting}>{submitting?'Sending…':'Send request'}</button></div>
+  </form></>:<><h2>Request received</h2><p className="sub">Save this reference code. Your trip is not confirmed yet; the owner will contact you about availability.</p><div className="found"><h3>{result.reference_code}</h3><p style={{margin:'8px 0 0'}}>{f.origin} to {f.destination}<br/>Preferred date: {f.preferred_date}<br/>{f.type}, {f.breed}</p></div><p>{result.notification==='sent'?'The owner has also been notified by email.':'Your request is saved, but owner email notification could not be confirmed. You can also contact World of Pets on Messenger.'}</p><div className="acts"><a className="btn ghost" href="https://m.me/WorldofPetsPH" target="_blank" rel="noopener noreferrer">Chat on Messenger</a><button className="btn" onClick={onClose}>Done</button></div></>}
+  </div></div>)}
 function App(){
  const root=useRef(null);
  const [trips,setTrips]=useState([]),[calendarLoading,setCalendarLoading]=useState(true),[calendarError,setCalendarError]=useState(''),[refresh,setRefresh]=useState(0);
  const [sel,setSel]=useState(today);
- const [book,setBook]=useState(null),[q,setQ]=useState(''),[lookupPhone,setLookupPhone]=useState(''),[hit,setHit]=useState(null),[err,setErr]=useState('');
+ const [book,setBook]=useState(null),[tripRequestOpen,setTripRequestOpen]=useState(false),[q,setQ]=useState(''),[lookupPhone,setLookupPhone]=useState(''),[hit,setHit]=useState(null),[err,setErr]=useState('');
  const calendarLoaded=useRef(false);
  useEffect(()=>{let active=true;const load=async()=>{if(!calendarLoaded.current)setCalendarLoading(true);try{const response=await fetch('/api/trips');if(!response.ok)throw new Error('Live schedules are temporarily unavailable. Please try again shortly.');const body=await response.json().catch(()=>null);if(!body||!Array.isArray(body.trips))throw new Error('Live schedules are temporarily unavailable. Please try again shortly.');const next=body.trips.map(normalizeTrip);if(!active)return;setTrips(next);setCalendarError('');setSel(current=>next.some(t=>t.trip_date===dateKey(current))?current:(next.find(t=>t.left>0)?.date||current))}catch(error){if(active)setCalendarError(error.message||'Live schedules are temporarily unavailable.')}finally{if(active){calendarLoaded.current=true;setCalendarLoading(false)}}};load();const timer=setInterval(load,30000);return()=>{active=false;clearInterval(timer)}},[refresh]);
  const look=async e=>{e.preventDefault();setHit(null);setErr('');try{const params=new URLSearchParams({reference:q.trim().toUpperCase(),phone:lookupPhone.trim()});const response=await fetch('/api/booking-status?'+params.toString());const body=await response.json().catch(()=>({}));if(!response.ok)throw new Error(body.error||'Could not look up that booking.');setHit(body.booking)}catch(error){setErr(error.message||'Could not check booking status right now.')}};
@@ -193,8 +226,8 @@ function App(){
   <div className="wrap hero-body" style={{width:'100%'}}><div>
    <h1>Pet travel across Mindanao, door to door.</h1>
    <p>Choose a day on the calendar to see the route, departure time and open slots, then book in three steps.</p>
-   <div className="cta"><button className="btn" disabled={!trip||trip.left===0} onClick={()=>setBook(trip)}>Book {fmt(sel).split(',')[1]}</button><a className="btn ghost" href="#track">Track a booking</a></div></div>
-   <Calendar trips={trips} loading={calendarLoading} error={calendarError} sel={sel} setSel={setSel} onBook={setBook}/></div>
+   <div className="cta"><button className="btn" disabled={!trip||trip.left===0} onClick={()=>setBook(trip)}>Book {fmt(sel).split(',')[1]}</button><button className="btn ghost" onClick={()=>setTripRequestOpen(true)}>Request a trip</button><a className="btn ghost" href="#track">Track a booking</a></div></div>
+   <Calendar trips={trips} loading={calendarLoading} error={calendarError} sel={sel} setSel={setSel} onBook={setBook} onRequest={()=>setTripRequestOpen(true)}/></div>
   <div className="wm" aria-hidden="true">{[...'World of Pets'].map((c,i)=>c===' '?<i key={i} className="sp"/>:<i key={i} className={i>5?'n':''}>{c}</i>)}</div>
  </header>
  <main>
@@ -219,6 +252,7 @@ function App(){
    <div className="legal">© 2026 World of Pets · <a href="./admin.html">Owner sign in</a></div></div></footer>
  <a className="messenger-link" href="https://m.me/WorldofPetsPH" target="_blank" rel="noopener noreferrer" aria-label="Chat with World of Pets on Messenger"><svg viewBox="0 0 36 36" aria-hidden="true"><path fill="currentColor" d="M18 .7C8.2.7.7 7.9.7 17.5c0 5.1 2.1 9.5 5.6 12.4.3.2.4.6.4.9l.4 4c.1.7.8 1.1 1.4.8l4.4-1.9c.4-.2.8-.2 1.2-.1 1.3.4 2.7.6 4.2.6 9.8 0 17.3-7.2 17.3-16.8S27.8.7 18 .7Z"/><path fill="#0866ff" d="m7.6 21.7 5.1-8.1a2.1 2.1 0 0 1 3.1-.6l4.1 3.1c.3.2.7.2 1 0l6-4.6c.6-.4 1.4.3 1 1L22.8 21a2.1 2.1 0 0 1-3.1.6l-4.1-3.1a.9.9 0 0 0-1 0l-6 4.6c-.6.4-1.4-.3-1-1.1Z"/></svg><span>Chat on Messenger</span></a>
  {book&&<Booking trip={book} onClose={()=>setBook(null)} onDone={()=>setRefresh(v=>v+1)}/>}
+ {tripRequestOpen&&<TripRequest onClose={()=>setTripRequestOpen(false)}/>}
  </div>)}
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script></body></html>
