@@ -5,6 +5,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{color-scheme:light;--bg:#f5faff;--card:#fff;--ink:#0f4379;--soft:#587798;--line:#d5e7f5;--blue:#0878c8;--mist:#e8f4fc;--red:#a63c38;--green:#31775d}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 'Instrument Sans',sans-serif}h1,h2,h3{font-family:'Bricolage Grotesque',sans-serif;line-height:1.1;margin:0}h1{font-size:clamp(36px,6vw,64px);letter-spacing:-.04em}h2{font-size:30px}a{color:inherit}.wrap{width:min(1160px,92vw);margin:auto}.top{display:flex;align-items:center;justify-content:space-between;padding:22px 0;border-bottom:1px solid var(--line)}.brand{display:flex;gap:10px;align-items:center;text-decoration:none;font-weight:700}.brand img{width:40px;height:40px;object-fit:contain;border-radius:50%;background:#fff}.top nav{display:flex;gap:18px;align-items:center}.top nav a{color:var(--soft);text-decoration:none}.intro{padding:48px 0 28px}.intro p{max-width:620px;color:var(--soft)}.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:clamp(20px,4vw,32px);box-shadow:0 16px 40px #0f43790c}.login{max-width:480px;margin:45px auto}.login h2{margin-bottom:18px}.panel{display:grid;gap:30px;padding-bottom:70px}.split{display:grid;grid-template-columns:minmax(280px,.8fr) 1.2fr;gap:24px;align-items:start}label{display:grid;gap:6px;font-size:14px;font-weight:600}input,select,textarea{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:16px 'Instrument Sans',sans-serif}textarea{min-height:74px;resize:vertical}.fields{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}.full{grid-column:1/-1}.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.btn{border:0;border-radius:999px;padding:12px 19px;background:var(--blue);color:#fff;font:600 15px 'Instrument Sans',sans-serif;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}.btn:hover{filter:brightness(.94)}.btn.secondary{background:var(--mist);color:var(--ink)}.btn.danger{background:#fff1ef;color:var(--red)}.btn:disabled{opacity:.55;cursor:wait}.muted{color:var(--soft)}.notice{min-height:24px;color:var(--green);font-weight:600}.notice.error{color:var(--red)}.list{display:grid;gap:12px;margin-top:18px}.item{border-top:1px solid var(--line);padding:16px 0 4px}.item h3{font-size:20px;margin-bottom:5px}.item p{margin:4px 0;color:var(--soft);font-size:14px}.item .actions{margin:10px 0}.badge{border-radius:99px;padding:4px 10px;background:var(--mist);font-size:12px;color:var(--ink);font-weight:600}.table-wrap{overflow:auto;margin-top:16px}table{width:100%;border-collapse:collapse;min-width:780px}th,td{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line);vertical-align:top;font-size:14px}th{color:var(--soft);font-weight:600}td select{min-width:145px;padding:8px}.hidden{display:none!important}.foot{color:var(--soft);font-size:13px;padding:0 0 28px}@media(max-width:760px){.split{grid-template-columns:1fr}.top nav a:not(.btn){display:none}.fields{grid-template-columns:1fr}.full{grid-column:auto}.intro{padding:32px 0 18px}}
+dialog::backdrop{background:rgba(15,67,121,.45);backdrop-filter:blur(3px)}
 </style></head><body>
 <header class="wrap top"><a class="brand" href="./"><span>World of Pets <span class="muted">/ Owner portal</span></span></a><nav><a href="./">View website</a><button id="logout" class="btn secondary hidden" type="button">Sign out</button></nav></header>
 <main class="wrap"><div class="intro"><h1>Trips, in your hands.</h1><p>Sign in to manage the public calendar and keep booking requests up to date. Changes to trip availability appear on the customer calendar automatically.</p></div>
@@ -20,8 +21,41 @@
    <label class="full"><span><input name="is_public" type="checkbox" checked style="width:auto"> Show this trip on the public calendar</span></label>
   </div><div class="actions"><button class="btn" type="submit" id="save-trip">Save trip</button><button class="btn secondary hidden" id="cancel-edit" type="button">Cancel edit</button></div><p id="trip-note" class="notice" role="status"></p></form>
  </section><section class="card"><h2>Upcoming schedules</h2><p class="muted">Close or cancel trips to remove them from public booking. Existing bookings remain in your records.</p><div id="trip-list" class="list"><p class="muted">Loading…</p></div></section></div>
- <section class="card"><h2>Custom trip requests</h2><p class="muted">These are requests for routes or dates without an open schedule. Accepting one does not create a trip or reserve space; contact the customer, then add a schedule if you agree.</p><div id="trip-request-list" class="list"><p class="muted">Loading…</p></div></section>
+ <section class="card"><h2>Custom trip requests</h2><p class="muted">Requests for routes or dates without an open schedule. Accept and convert a request into an open trip to publish it on the calendar and allow other customers to book.</p><div id="trip-request-list" class="list"><p class="muted">Loading…</p></div></section>
  <section class="card"><h2>Booking requests</h2><p class="muted">Review each request and offer your final price. The booking stays pending until the customer accepts it through Track a booking. Then move the confirmed booking through its trip statuses.</p><div class="table-wrap"><table><thead><tr><th>Customer / pet</th><th>Trip</th><th>Contact & addresses</th><th>Owner quote</th><th>Status</th></tr></thead><tbody id="booking-list"><tr><td colspan="5">Loading…</td></tr></tbody></table></div></section>
+
+ <dialog id="convert-modal" class="card" style="position:fixed;inset:0;margin:auto;max-width:540px;width:92vw;border-radius:24px;border:1px solid var(--line);box-shadow:0 24px 60px rgba(15,67,121,.3);padding:28px;z-index:100">
+  <form id="convert-form" method="dialog">
+    <input type="hidden" name="request_id">
+    <h2 style="font-size:24px;margin-bottom:6px">Create Open Trip & Booking</h2>
+    <p class="muted" style="font-size:14px;margin-bottom:16px">This publishes the schedule to the public calendar so other customers can book open slots, and migrates this customer into Booking Requests.</p>
+    <div class="fields" style="margin-top:0">
+      <label class="full">Route
+        <input name="route_display" readonly style="background:#f3f7fa;cursor:not-allowed">
+      </label>
+      <label class="full">Departure date & time (local)
+        <input name="departure_at" type="datetime-local" required>
+      </label>
+      <label>Total spaces<input name="capacity" type="number" min="1" max="100" value="5" required></label>
+      <label>Reference fare (₱)<input name="fare_php" type="number" min="0" max="1000000" value="550" required></label>
+      <label class="full">Price quote for this customer (optional ₱)
+        <input name="quote_price" type="number" min="0" max="1000000" placeholder="e.g. 1500 (can quote later if blank)">
+      </label>
+      <label class="full">Message for customer (optional)
+        <input name="quote_note" maxlength="500" placeholder="e.g. Includes crate handling and pickup">
+      </label>
+      <label class="full">
+        <span><input name="is_public" type="checkbox" checked style="width:auto"> Publish as open trip on the public calendar (maximize passengers)</span>
+      </label>
+    </div>
+    <div class="actions" style="margin-top:16px">
+      <button class="btn" type="submit" id="save-convert">Publish Trip & Create Booking</button>
+      <button class="btn secondary" type="button" id="close-convert">Cancel</button>
+    </div>
+    <p id="convert-note" class="notice" role="status"></p>
+  </form>
+ </dialog>
+
 </section></main><footer class="wrap foot">Private owner portal. Only accounts added to the World of Pets admin list can manage schedules and bookings.</footer>
 <script>
 (()=>{
@@ -35,19 +69,194 @@ function setSignedIn(on){el('login-card').classList.toggle('hidden',on);el('dash
 function statusName(s){return s.replaceAll('_',' ')}
 function renderTrips(){el('trip-list').innerHTML=trips.length?trips.map((t,i)=>{const used=(t.bookings||[]).filter(b=>['pending','confirmed','scheduled','in_transit'].includes(b.status)).length;return `<article class="item"><div class="actions"><h3>${esc(t.origin)} → ${esc(t.destination)}</h3><span class="badge">${esc(t.state)}${t.is_public?' · public':' · hidden'}</span></div><p>${esc(new Date(t.departure_at).toLocaleString('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'}))} · ${esc(t.via||'Direct')} · reference ₱${Number(t.fare_php).toLocaleString()}</p><p>${used} of ${t.capacity} spaces reserved${t.notes?` · ${esc(t.notes)}`:''}</p><div class="actions"><button class="btn secondary" data-edit="${i}">Edit</button>${t.state!=='cancelled'?`<button class="btn danger" data-cancel="${i}">Cancel trip</button>`:''}</div></article>`}).join(''):'<p class="muted">No upcoming schedules. Add one using the form.</p>'}
 const states=['pending','confirmed','scheduled','in_transit','completed','cancelled','declined'];
-function renderBookings(){el('booking-list').innerHTML=bookings.length?bookings.map((b,i)=>{const canQuote=b.status==='pending'&&b.quote_status!=='accepted',statusOptions=b.quote_status==='accepted'?['confirmed','scheduled','in_transit','completed','cancelled','declined']:b.status==='pending'?['pending','declined']:[];return `<tr><td><b>${esc(b.customer_name)}</b><br>${esc(b.pet_type)} · ${esc(b.breed)} (${esc(b.age)}, ${esc(b.weight_kg)} kg)<br>${b.cage_option==='rent'?'Cage rental requested':'Customer has a cage'}<br><span class="muted">${esc(b.reference_code)}</span></td><td>${esc(b.trip?.origin||'')} → ${esc(b.trip?.destination||'')}<br>${b.trip?.departure_at?esc(new Date(b.trip.departure_at).toLocaleString('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'})):''}</td><td><a href="tel:${esc(b.customer_phone)}">${esc(b.customer_phone)}</a><br>Pickup: ${esc(b.pickup_address)}<br>Drop-off: ${esc(b.dropoff_address)}</td><td>${b.quote_status==='accepted'?`<b>Accepted: ₱${Number(b.quoted_total_php).toLocaleString()}</b>`:b.quote_status==='offered'?`<b>Quote offered: ₱${Number(b.quoted_total_php).toLocaleString()}</b>`:b.status==='pending'?'<b>Waiting for your quote</b>':'No quote'}${b.quote_note?`<br>${esc(b.quote_note)}`:''}<form data-quote="${i}" style="display:${canQuote?'grid':'none'};gap:6px;min-width:170px;margin-top:8px"><label>Final total (₱)<input data-quote-price type="number" min="0" max="1000000" step="1" required value="${b.quoted_total_php??''}" aria-label="Final quote for ${esc(b.reference_code)}"></label><label>Message for customer (optional)<input data-quote-note maxlength="500" value="${esc(b.quote_note||'')}" aria-label="Quote note for ${esc(b.reference_code)}"></label><button class="btn" type="submit">${b.quote_status==='offered'?'Update quote':'Offer quote'}</button></form><small class="muted">Schedule fare for reference only: ₱${Number(b.total_php).toLocaleString()}</small></td><td>${statusOptions.length?`<select data-booking="${i}" aria-label="Booking status for ${esc(b.reference_code)}">${statusOptions.map(s=>`<option value="${s}" ${b.status===s?'selected':''}>${esc(statusName(s))}</option>`).join('')}</select>`:esc(statusName(b.status))}</td></tr>`}).join(''):'<tr><td colspan="5" class="muted">No bookings yet.</td></tr>'}
-function renderTripRequests(){el('trip-request-list').innerHTML=tripRequests.length?tripRequests.map((r,i)=>`<article class="item"><div class="actions"><h3>${esc(r.origin)} → ${esc(r.destination)}</h3><span class="badge">${esc(statusName(r.status))}</span><span class="badge">${esc(r.reference_code)}</span></div><p>Preferred date: ${esc(new Date(`${r.preferred_date}T12:00:00+08:00`).toLocaleDateString('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium'}))}${r.via?` · via ${esc(r.via)}`:''}</p><p><b>${esc(r.customer_name)}</b> · <a href="tel:${esc(r.customer_phone)}">${esc(r.customer_phone)}</a></p><p>${esc(r.pet_type)} · ${esc(r.breed)} · ${esc(r.age)} · ${esc(r.weight_kg)} kg · ${r.cage_option==='rent'?'cage rental may be needed':'own cage'}</p><p>Pickup: ${esc(r.pickup_address)}<br>Drop-off: ${esc(r.dropoff_address)}</p><label style="max-width:240px">Owner review status<select data-trip-request="${i}" aria-label="Status for ${esc(r.reference_code)}">${['pending','accepted','declined'].map(s=>`<option value="${s}" ${r.status===s?'selected':''}>${esc(statusName(s))}</option>`).join('')}</select></label></article>`).join(''):'<p class="muted">No custom trip requests yet.</p>'}
-async function refresh(){try{const [t,b]=await Promise.all([api('/api/admin/trips'),api('/api/admin/bookings')]);trips=t.trips;bookings=b.bookings;renderTrips();renderBookings();try{const r=await api('/api/admin/trip-requests');tripRequests=r.requests;renderTripRequests()}catch(requestError){tripRequests=[];el('trip-request-list').innerHTML='<p class="muted">The custom request inbox is not ready yet. Apply the trip requests database migration, then refresh this page.</p>';showNote('trip-note',requestError.message,true)}}catch(e){showNote('trip-note',e.message,true);if(/session|sign in|authorized/i.test(e.message)){sessionStorage.removeItem(sessionKey);session=null;setSignedIn(false);showNote('login-note',e.message,true)}}}
-async function start(){try{const r=await fetch('/api/config');config=await r.json();if(!r.ok)throw new Error(config.error||'Owner portal is not configured yet.');loadSession();if(session){setSignedIn(true);await refresh()}else setSignedIn(false)}catch(e){showNote('login-note',e.message,true)}}
-el('login-form').addEventListener('submit',async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('button');btn.disabled=true;showNote('login-note','Signing in…');const data=new FormData(e.currentTarget);try{const r=await fetch(config.supabaseUrl+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'content-type':'application/json',apikey:config.publishableKey},body:JSON.stringify({email:data.get('email'),password:data.get('password')})});const result=await r.json().catch(()=>({}));if(!r.ok)throw new Error(result.msg||result.message||'Email or password was not accepted.');session={access_token:result.access_token,refresh_token:result.refresh_token,expires_at:Date.now()+Number(result.expires_in||3600)*1000};sessionStorage.setItem(sessionKey,JSON.stringify(session));setSignedIn(true);showNote('login-note','');await refresh()}catch(err){showNote('login-note',err.message,true)}finally{btn.disabled=false}});
-el('logout').addEventListener('click',async()=>{try{await fetch(config.supabaseUrl+'/auth/v1/logout',{method:'POST',headers:{apikey:config.publishableKey,authorization:`Bearer ${session.access_token}`}})}catch{}sessionStorage.removeItem(sessionKey);session=null;setSignedIn(false)});
+
+function renderBookings(){
+  el('booking-list').innerHTML=bookings.length?bookings.map((b,i)=>{
+    const canQuote=b.status==='pending'&&b.quote_status!=='accepted',
+          statusOptions=b.quote_status==='accepted'?['confirmed','scheduled','in_transit','completed','cancelled','declined']:b.status==='pending'?['pending','declined']:[];
+    const quoteBadge=b.quote_status==='accepted'
+      ? `<span class="badge" style="background:#e6f9ed;color:#137333;font-weight:700">Accepted: ₱${Number(b.quoted_total_php).toLocaleString()}</span>`
+      : b.quote_status==='offered'
+      ? `<span class="badge" style="background:#e8f0fe;color:#1a73e8;font-weight:700">Quote offered: ₱${Number(b.quoted_total_php).toLocaleString()}</span>`
+      : b.status==='pending'
+      ? `<span class="badge" style="background:#fef7e0;color:#b06000;font-weight:600">Waiting for your quote</span>`
+      : '<span class="muted" style="font-weight:600">No quote</span>';
+    const noteDisplay=b.quote_note?`<div style="margin-top:6px;padding:6px 10px;background:#f3f7fa;border-radius:8px;color:var(--ink);font-size:13px;border-left:3px solid var(--blue)"><em>"${esc(b.quote_note)}"</em></div>`:'';
+    const referenceFare=`<div style="margin-top:8px;padding-top:6px;border-top:1px dashed var(--line);font-size:12px;color:var(--soft)">Schedule fare (reference): ₱${Number(b.total_php).toLocaleString()}</div>`;
+
+    return `<tr>
+      <td><b>${esc(b.customer_name)}</b><br>${esc(b.pet_type)} · ${esc(b.breed)} (${esc(b.age)}, ${esc(b.weight_kg)} kg)<br>${b.cage_option==='rent'?'Cage rental requested':'Customer has a cage'}<br><span class="muted">${esc(b.reference_code)}</span></td>
+      <td>${esc(b.trip?.origin||'')} → ${esc(b.trip?.destination||'')}<br>${b.trip?.departure_at?esc(new Date(b.trip.departure_at).toLocaleString('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'})):''}</td>
+      <td><a href="tel:${esc(b.customer_phone)}">${esc(b.customer_phone)}</a><br>Pickup: ${esc(b.pickup_address)}<br>Drop-off: ${esc(b.dropoff_address)}</td>
+      <td style="min-width:210px">
+        <div>${quoteBadge}</div>
+        ${noteDisplay}
+        <form data-quote="${i}" style="display:${canQuote?'grid':'none'};gap:6px;min-width:170px;margin-top:10px">
+          <label>Final total (₱)<input data-quote-price type="number" min="0" max="1000000" step="1" required value="${b.quoted_total_php??''}" aria-label="Final quote for ${esc(b.reference_code)}"></label>
+          <label>Message for customer (optional)<input data-quote-note maxlength="500" value="${esc(b.quote_note||'')}" aria-label="Quote note for ${esc(b.reference_code)}"></label>
+          <button class="btn" type="submit">${b.quote_status==='offered'?'Update quote':'Offer quote'}</button>
+        </form>
+        ${referenceFare}
+      </td>
+      <td>${statusOptions.length?`<select data-booking="${i}" aria-label="Booking status for ${esc(b.reference_code)}">${statusOptions.map(s=>`<option value="${s}" ${b.status===s?'selected':''}>${esc(statusName(s))}</option>`).join('')}</select>`:esc(statusName(b.status))}</td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="5" class="muted">No bookings yet.</td></tr>';
+}
+
+function renderTripRequests(){
+  el('trip-request-list').innerHTML=tripRequests.length?tripRequests.map((r,i)=>{
+    const isAccepted=r.status==='accepted';
+    return `<article class="item">
+      <div class="actions">
+        <h3>${esc(r.origin)} → ${esc(r.destination)}</h3>
+        <span class="badge">${esc(statusName(r.status))}</span>
+        <span class="badge">${esc(r.reference_code)}</span>
+      </div>
+      <p>Preferred date: ${esc(new Date(`${r.preferred_date}T12:00:00+08:00`).toLocaleDateString('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium'}))}${r.via?` · via ${esc(r.via)}`:''}</p>
+      <p><b>${esc(r.customer_name)}</b> · <a href="tel:${esc(r.customer_phone)}">${esc(r.customer_phone)}</a></p>
+      <p>${esc(r.pet_type)} · ${esc(r.breed)} · ${esc(r.age)} · ${esc(r.weight_kg)} kg · ${r.cage_option==='rent'?'cage rental may be needed':'own cage'}</p>
+      <p>Pickup: ${esc(r.pickup_address)}<br>Drop-off: ${esc(r.dropoff_address)}</p>
+      <div class="actions" style="margin-top:12px">
+        <label style="max-width:170px;margin:0">Status
+          <select data-trip-request="${i}" aria-label="Status for ${esc(r.reference_code)}">${['pending','accepted','declined'].map(s=>`<option value="${s}" ${r.status===s?'selected':''}>${esc(statusName(s))}</option>`).join('')}</select>
+        </label>
+        <button class="btn secondary" data-convert-request="${i}" type="button">
+          ${isAccepted ? 'Create Open Trip & Booking' : 'Accept & Create Open Trip'}
+        </button>
+      </div>
+    </article>`;
+  }).join(''):'<p class="muted">No custom trip requests yet.</p>';
+}
+
+async function refresh(){
+  try{
+    const [t,b]=await Promise.all([api('/api/admin/trips'),api('/api/admin/bookings')]);
+    trips=t.trips;bookings=b.bookings;renderTrips();renderBookings();
+    try{
+      const r=await api('/api/admin/trip-requests');tripRequests=r.requests;renderTripRequests();
+    }catch(requestError){
+      tripRequests=[];el('trip-request-list').innerHTML='<p class="muted">The custom request inbox is not ready yet. Apply the trip requests database migration, then refresh this page.</p>';showNote('trip-note',requestError.message,true);
+    }
+  }catch(e){
+    showNote('trip-note',e.message,true);
+    if(/session|sign in|authorized/i.test(e.message)){sessionStorage.removeItem(sessionKey);session=null;setSignedIn(false);showNote('login-note',e.message,true)}
+  }
+}
+
+async function start(){
+  try{
+    const r=await fetch('/api/config');config=await r.json();
+    if(!r.ok)throw new Error(config.error||'Owner portal is not configured yet.');
+    loadSession();
+    if(session){setSignedIn(true);await refresh()}else setSignedIn(false);
+  }catch(e){showNote('login-note',e.message,true)}
+}
+
+el('login-form').addEventListener('submit',async e=>{
+  e.preventDefault();const btn=e.currentTarget.querySelector('button');btn.disabled=true;showNote('login-note','Signing in…');
+  const data=new FormData(e.currentTarget);
+  try{
+    const r=await fetch(config.supabaseUrl+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'content-type':'application/json',apikey:config.publishableKey},body:JSON.stringify({email:data.get('email'),password:data.get('password')})});
+    const result=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(result.msg||result.message||'Email or password was not accepted.');
+    session={access_token:result.access_token,refresh_token:result.refresh_token,expires_at:Date.now()+Number(result.expires_in||3600)*1000};
+    sessionStorage.setItem(sessionKey,JSON.stringify(session));setSignedIn(true);showNote('login-note','');await refresh();
+  }catch(err){showNote('login-note',err.message,true)}finally{btn.disabled=false}
+});
+
+el('logout').addEventListener('click',async()=>{
+  try{await fetch(config.supabaseUrl+'/auth/v1/logout',{method:'POST',headers:{apikey:config.publishableKey,authorization:`Bearer ${session.access_token}`}})}catch{}
+  sessionStorage.removeItem(sessionKey);session=null;setSignedIn(false);
+});
+
 function resetTripForm(){el('trip-form').reset();el('trip-form').elements.id.value='';el('trip-form-title').textContent='Add a trip';el('save-trip').textContent='Save trip';el('cancel-edit').classList.add('hidden')}
 el('cancel-edit').addEventListener('click',resetTripForm);
-el('trip-list').addEventListener('click',async e=>{const edit=e.target.closest('[data-edit]'),cancel=e.target.closest('[data-cancel]');if(edit){const t=trips[Number(edit.dataset.edit)],f=el('trip-form');f.elements.id.value=t.id;f.elements.origin.value=t.origin;f.elements.destination.value=t.destination;f.elements.via.value=t.via||'';f.elements.departure_at.value=localTime(t.departure_at);f.elements.fare_php.value=t.fare_php;f.elements.capacity.value=t.capacity;f.elements.notes.value=t.notes||'';f.elements.is_public.checked=t.is_public;el('trip-form-title').textContent='Edit trip';el('save-trip').textContent='Save changes';el('cancel-edit').classList.remove('hidden');f.scrollIntoView({behavior:'smooth',block:'center'});return}if(cancel){const t=trips[Number(cancel.dataset.cancel)];if(!confirm(`Cancel ${t.origin} to ${t.destination}? Existing bookings will be retained.`))return;cancel.disabled=true;try{await api(`/api/admin/trips?id=${encodeURIComponent(t.id)}`,{method:'PATCH',body:JSON.stringify({state:'cancelled'})});await refresh()}catch(err){showNote('trip-note',err.message,true)}finally{cancel.disabled=false}}});
-el('trip-form').addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget,d=new FormData(f),id=d.get('id'),payload={origin:d.get('origin'),destination:d.get('destination'),via:d.get('via'),departure_at:new Date(d.get('departure_at')).toISOString(),fare_php:Number(d.get('fare_php')),capacity:Number(d.get('capacity')),notes:d.get('notes'),is_public:f.elements.is_public.checked};const btn=el('save-trip');btn.disabled=true;showNote('trip-note','Saving schedule…');try{await api(id?`/api/admin/trips?id=${encodeURIComponent(id)}`:'/api/admin/trips',{method:id?'PATCH':'POST',body:JSON.stringify(payload)});showNote('trip-note','Schedule saved. The public calendar will refresh shortly.');resetTripForm();await refresh()}catch(err){showNote('trip-note',err.message,true)}finally{btn.disabled=false}});
-el('booking-list').addEventListener('submit',async e=>{const form=e.target.closest('[data-quote]');if(!form)return;e.preventDefault();const b=bookings[Number(form.dataset.quote)],button=form.querySelector('button'),amount=form.querySelector('[data-quote-price]').value,note=form.querySelector('[data-quote-note]').value;button.disabled=true;try{await api(`/api/admin/bookings?id=${encodeURIComponent(b.id)}`,{method:'PATCH',body:JSON.stringify({quoted_total_php:Number(amount),quote_note:note})});showNote('trip-note',`Quote saved for ${b.reference_code}. Contact the customer and ask them to review it under Track a booking.`);await refresh()}catch(err){showNote('trip-note',err.message,true)}finally{button.disabled=false}});
-el('booking-list').addEventListener('change',async e=>{const select=e.target.closest('[data-booking]');if(!select)return;const b=bookings[Number(select.dataset.booking)],previous=b.status;select.disabled=true;try{await api(`/api/admin/bookings?id=${encodeURIComponent(b.id)}`,{method:'PATCH',body:JSON.stringify({status:select.value})});b.status=select.value;showNote('trip-note',`Booking ${b.reference_code} updated to ${statusName(b.status)}.`);await refresh()}catch(err){select.value=previous;showNote('trip-note',err.message,true)}finally{select.disabled=false}});
-el('trip-request-list').addEventListener('change',async e=>{const select=e.target.closest('[data-trip-request]');if(!select)return;const r=tripRequests[Number(select.dataset.tripRequest)],previous=r.status;select.disabled=true;try{await api(`/api/admin/trip-requests?id=${encodeURIComponent(r.id)}`,{method:'PATCH',body:JSON.stringify({status:select.value})});r.status=select.value;renderTripRequests();showNote('trip-note',`Request ${r.reference_code} updated to ${statusName(r.status)}.`)}catch(err){select.value=previous;showNote('trip-note',err.message,true)}finally{select.disabled=false}});
+
+el('trip-list').addEventListener('click',async e=>{
+  const edit=e.target.closest('[data-edit]'),cancel=e.target.closest('[data-cancel]');
+  if(edit){
+    const t=trips[Number(edit.dataset.edit)],f=el('trip-form');
+    f.elements.id.value=t.id;f.elements.origin.value=t.origin;f.elements.destination.value=t.destination;f.elements.via.value=t.via||'';
+    f.elements.departure_at.value=localTime(t.departure_at);f.elements.fare_php.value=t.fare_php;f.elements.capacity.value=t.capacity;
+    f.elements.notes.value=t.notes||'';f.elements.is_public.checked=t.is_public;
+    el('trip-form-title').textContent='Edit trip';el('save-trip').textContent='Save changes';el('cancel-edit').classList.remove('hidden');
+    f.scrollIntoView({behavior:'smooth',block:'center'});return;
+  }
+  if(cancel){
+    const t=trips[Number(cancel.dataset.cancel)];
+    if(!confirm(`Cancel ${t.origin} to ${t.destination}? Existing bookings will be retained.`))return;
+    cancel.disabled=true;
+    try{await api(`/api/admin/trips?id=${encodeURIComponent(t.id)}`,{method:'PATCH',body:JSON.stringify({state:'cancelled'})});await refresh()}catch(err){showNote('trip-note',err.message,true)}finally{cancel.disabled=false}
+  }
+});
+
+el('trip-form').addEventListener('submit',async e=>{
+  e.preventDefault();const f=e.currentTarget,d=new FormData(f),id=d.get('id'),payload={origin:d.get('origin'),destination:d.get('destination'),via:d.get('via'),departure_at:new Date(d.get('departure_at')).toISOString(),fare_php:Number(d.get('fare_php')),capacity:Number(d.get('capacity')),notes:d.get('notes'),is_public:f.elements.is_public.checked};
+  const btn=el('save-trip');btn.disabled=true;showNote('trip-note','Saving schedule…');
+  try{await api(id?`/api/admin/trips?id=${encodeURIComponent(id)}`:'/api/admin/trips',{method:id?'PATCH':'POST',body:JSON.stringify(payload)});showNote('trip-note','Schedule saved. The public calendar will refresh shortly.');resetTripForm();await refresh()}catch(err){showNote('trip-note',err.message,true)}finally{btn.disabled=false}
+});
+
+el('booking-list').addEventListener('submit',async e=>{
+  const form=e.target.closest('[data-quote]');if(!form)return;
+  e.preventDefault();const b=bookings[Number(form.dataset.quote)],button=form.querySelector('button'),amount=form.querySelector('[data-quote-price]').value,note=form.querySelector('[data-quote-note]').value;
+  button.disabled=true;
+  try{await api(`/api/admin/bookings?id=${encodeURIComponent(b.id)}`,{method:'PATCH',body:JSON.stringify({quoted_total_php:Number(amount),quote_note:note})});showNote('trip-note',`Quote saved for ${b.reference_code}. Contact the customer and ask them to review it under Track a booking.`);await refresh()}catch(err){showNote('trip-note',err.message,true)}finally{button.disabled=false}
+});
+
+el('booking-list').addEventListener('change',async e=>{
+  const select=e.target.closest('[data-booking]');if(!select)return;
+  const b=bookings[Number(select.dataset.booking)],previous=b.status;
+  select.disabled=true;
+  try{await api(`/api/admin/bookings?id=${encodeURIComponent(b.id)}`,{method:'PATCH',body:JSON.stringify({status:select.value})});b.status=select.value;showNote('trip-note',`Booking ${b.reference_code} updated to ${statusName(b.status)}.`);await refresh()}catch(err){select.value=previous;showNote('trip-note',err.message,true)}finally{select.disabled=false}
+});
+
+el('trip-request-list').addEventListener('change',async e=>{
+  const select=e.target.closest('[data-trip-request]');if(!select)return;
+  const r=tripRequests[Number(select.dataset.tripRequest)],previous=r.status;
+  select.disabled=true;
+  try{await api(`/api/admin/trip-requests?id=${encodeURIComponent(r.id)}`,{method:'PATCH',body:JSON.stringify({status:select.value})});r.status=select.value;renderTripRequests();showNote('trip-note',`Request ${r.reference_code} updated to ${statusName(r.status)}.`)}catch(err){select.value=previous;showNote('trip-note',err.message,true)}finally{select.disabled=false}
+});
+
+el('trip-request-list').addEventListener('click',e=>{
+  const btn=e.target.closest('[data-convert-request]');if(!btn)return;
+  const r=tripRequests[Number(btn.dataset.convertRequest)],f=el('convert-form');
+  f.elements.request_id.value=r.id;
+  f.elements.route_display.value=`${r.origin} → ${r.destination}${r.via?` (via ${r.via})`:''}`;
+  f.elements.departure_at.value=`${r.preferred_date}T08:00`;
+  f.elements.capacity.value=5;
+  f.elements.fare_php.value=550;
+  f.elements.quote_price.value='';
+  f.elements.quote_note.value='';
+  f.elements.is_public.checked=true;
+  showNote('convert-note','');
+  el('convert-modal').showModal();
+});
+
+el('close-convert').addEventListener('click',()=>el('convert-modal').close());
+
+el('convert-form').addEventListener('submit',async e=>{
+  e.preventDefault();const f=e.currentTarget,d=new FormData(f);
+  const btn=el('save-convert');btn.disabled=true;showNote('convert-note','Publishing open trip & creating booking…');
+  try{
+    const payload={
+      action:'convert',
+      request_id:d.get('request_id'),
+      departure_at:new Date(d.get('departure_at')).toISOString(),
+      capacity:Number(d.get('capacity')),
+      fare_php:Number(d.get('fare_php')),
+      is_public:f.elements.is_public.checked,
+      quote_price:d.get('quote_price')?Number(d.get('quote_price')):null,
+      quote_note:d.get('quote_note')||'',
+    };
+    await api('/api/admin/trip-requests',{method:'POST',body:JSON.stringify(payload)});
+    el('convert-modal').close();
+    showNote('trip-note','Custom request converted! Published to calendar and added to Booking Requests.');
+    await refresh();
+  }catch(err){
+    showNote('convert-note',err.message,true);
+  }finally{btn.disabled=false}
+});
+
 start();
 })();
 </script></body></html>
