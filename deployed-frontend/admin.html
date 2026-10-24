@@ -116,11 +116,11 @@ function renderTripRequests(){
       <p><b>${esc(r.customer_name)}</b> · <a href="tel:${esc(r.customer_phone)}">${esc(r.customer_phone)}</a></p>
       <p>${esc(r.pet_type)} · ${esc(r.breed)} · ${esc(r.age)} · ${esc(r.weight_kg)} kg · ${r.cage_option==='rent'?'cage rental may be needed':'own cage'}</p>
       <p>Pickup: ${esc(r.pickup_address)}<br>Drop-off: ${esc(r.dropoff_address)}</p>
-      <div class="actions" style="margin-top:12px">
+      <div style="display:flex;gap:12px;align-items:flex-end;margin-top:14px;flex-wrap:wrap">
         <label style="max-width:170px;margin:0">Status
-          <select data-trip-request="${i}" aria-label="Status for ${esc(r.reference_code)}">${['pending','accepted','declined'].map(s=>`<option value="${s}" ${r.status===s?'selected':''}>${esc(statusName(s))}</option>`).join('')}</select>
+          <select data-trip-request="${i}" style="height:45px" aria-label="Status for ${esc(r.reference_code)}">${['pending','accepted','declined'].map(s=>`<option value="${s}" ${r.status===s?'selected':''}>${esc(statusName(s))}</option>`).join('')}</select>
         </label>
-        <button class="btn secondary" data-convert-request="${i}" type="button">
+        <button class="btn secondary" data-convert-request="${i}" type="button" style="height:45px">
           ${isAccepted ? 'Create Open Trip & Booking' : 'Accept & Create Open Trip'}
         </button>
       </div>
