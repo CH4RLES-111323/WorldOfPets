@@ -110,7 +110,7 @@ const dateKey=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(
 const dateFromKey=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)};
 const today=new Date();today.setHours(0,0,0,0);
 function tripOn(d,trips){return trips.find(t=>t.trip_date===dateKey(d))||null}
-function normalizeTrip(t){const left=Number(t.available),capacity=Number(t.capacity);return{...t,date:dateFromKey(t.trip_date),a:t.origin,b:t.destination,fee:Number(t.fare_php),booked:Number(t.booked),left,capacity,status:left===0?'Fully booked':left<=2?'Nearly full':'Available',time:new Date(t.departure_at).toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit'})}}
+function normalizeTrip(t){const left=Number(t.available),capacity=Number(t.capacity);return{...t,date:dateFromKey(t.trip_date),a:t.origin,b:t.destination,booked:Number(t.booked),left,capacity,status:left===0?'Fully booked':left<=2?'Nearly full':'Available',time:new Date(t.departure_at).toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit'})}}
 const dot=s=>s==='Available'?'st-a':s==='Nearly full'?'st-n':'st-f';
 function Calendar({trips,loading,error,sel,setSel,onBook,onRequest}){
  const [m,setM]=useState(new Date(sel.getFullYear(),sel.getMonth(),1));
@@ -130,19 +130,18 @@ function Calendar({trips,loading,error,sel,setSel,onBook,onRequest}){
    <h3>{trip.a} to {trip.b}</h3>
    <div className="meta"><span className="pill">{fmt(sel)}</span><span className="pill">Departs {trip.time}</span><span className="pill">via {trip.via}</span></div>
    <div className="bar"><b style={{width:trip.booked/trip.capacity*100+'%'}}/></div>
-   <div className="go"><span><b>{trip.status}</b>: {trip.left} of {trip.capacity} slots left. ₱{trip.fee.toLocaleString()} per pet</span>
+   <div className="go"><span><b>{trip.status}</b>: {trip.left} of {trip.capacity} slots left. Owner provides your price quote after reviewing pet and pickup details.</span>
    <button className="btn" disabled={trip.left===0} onClick={()=>onBook(trip)}>{trip.left===0?'Fully booked':'Book this trip'}</button></div></>:<div><p style={{margin:'0 0 8px',color:'var(--soft)'}}>No public trip on this day. Need a different route or date?</p><button className="btn ghost" type="button" onClick={onRequest}>Request a trip</button></div>}</div></div>)}
 function Booking({trip,onClose,onDone}){
  const [s,setS]=useState(1),[f,setF]=useState({type:'Dog',breed:'',age:'',weight:'',cage:'own',name:'',phone:'',pickup:'',dropoff:'',health:false,terms:false}),[res,setRes]=useState(null),[submitting,setSubmitting]=useState(false),[submitError,setSubmitError]=useState('');
  const set=k=>e=>setF({...f,[k]:e.target.type==='checkbox'?e.target.checked:e.target.value});
- const total=trip.fee+(f.cage==='rent'?300:0);
  useEffect(()=>{const k=e=>e.key==='Escape'&&onClose();addEventListener('keydown',k);return()=>removeEventListener('keydown',k)},[]);
  useLayoutEffect(()=>{if(!matchMedia('(prefers-reduced-motion: reduce)').matches)gsap.from('.mod',{y:40,opacity:0,duration:.5,ease:'power3.out'})},[]);
  const next=async e=>{e.preventDefault();if(s<3)return setS(s+1);
   setSubmitting(true);setSubmitError('');
   try{const response=await fetch('/api/bookings',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({trip_id:trip.id,customer_name:f.name,customer_phone:f.phone,pickup_address:f.pickup,dropoff_address:f.dropoff,pet_type:f.type,breed:f.breed,age:f.age,weight_kg:f.weight,cage_option:f.cage,health_confirmed:f.health,terms_confirmed:f.terms})});
    const result=await response.json().catch(()=>({}));if(!response.ok)throw new Error(result.error||'Could not send your booking. Please try again.');
-   const b={...f,code:result.booking.reference_code,tripId:trip.id,route:trip.a+' to '+trip.b,date:fmt(trip.date),time:trip.time,total,status:'Request received'};setRes(b);onDone();setS(4);
+    const b={...f,code:result.booking.reference_code,tripId:trip.id,route:trip.a+' to '+trip.b,date:fmt(trip.date),time:trip.time,status:'Pending quote'};setRes(b);onDone();setS(4);
   }catch(error){setSubmitError(error.message||'Could not send your booking. Please try again.')}finally{setSubmitting(false)}};
  return(<div className="ov" onMouseDown={e=>e.target===e.currentTarget&&onClose()}><div className="mod" role="dialog" aria-modal="true" aria-label="Book a trip">
   {s<4?<><h2>{['Your pet','Your details','Health and terms'][s-1]}</h2>
@@ -152,20 +151,20 @@ function Booking({trip,onClose,onDone}){
    <label>Breed<input required autoFocus value={f.breed} onChange={set('breed')}/></label>
    <label>Age<input required value={f.age} onChange={set('age')} placeholder="e.g. 3 years"/></label>
    <label>Weight (kg)<input required type="number" min="0.1" step="0.1" value={f.weight} onChange={set('weight')}/></label>
-   <label className="full">Cage<select value={f.cage} onChange={set('cage')}><option value="own">I have my own cage</option><option value="rent">I need a cage from World of Pets (+₱300)</option></select></label></>}
+   <label className="full">Cage<select value={f.cage} onChange={set('cage')}><option value="own">I have my own cage</option><option value="rent">I may need a cage rental (included in the owner's quote)</option></select></label></>}
   {s===2&&<><label>Full name<input required autoFocus value={f.name} onChange={set('name')} autoComplete="name"/></label>
    <label>Mobile number<input required type="tel" value={f.phone} onChange={set('phone')} autoComplete="tel"/></label>
    <label className="full">Pickup address<input required value={f.pickup} onChange={set('pickup')}/></label>
    <label className="full">Drop-off address<input required value={f.dropoff} onChange={set('dropoff')}/></label></>}
   {s===3&&<><label className="chk full"><input required type="checkbox" checked={f.health} onChange={set('health')}/>I confirm my pet is healthy and fit to travel.</label>
-   <label className="chk full"><input required type="checkbox" checked={f.terms} onChange={set('terms')}/>I have read and agree to the transportation terms and conditions. World of Pets will confirm this booking by phone.</label>
-   <p className="full" style={{margin:0}}><b>Total: ₱{total.toLocaleString()}</b> ({f.cage==='rent'?'fare + cage rental':'fare only'})</p></>}
+   <label className="chk full"><input required type="checkbox" checked={f.terms} onChange={set('terms')}/>I have read and agree to the transportation terms and conditions. The owner will review my details and provide a price quote. This booking stays pending until I accept the quote.</label>
+   <p className="full" style={{margin:0}}><b>Price quote: pending owner review</b><br/>The schedule fare is not your final price. The owner will contact you with a quote; your booking remains pending until you accept it.</p></>}
    {submitError&&<p className="full err" role="alert">{submitError}</p>}
    <div className="full acts">{s>1?<button type="button" className="btn ghost" disabled={submitting} onClick={()=>setS(s-1)}>Back</button>:<button type="button" className="btn ghost" disabled={submitting} onClick={onClose}>Cancel</button>}
     <button className="btn" type="submit" disabled={submitting}>{submitting?'Sending…':s<3?'Continue':'Submit booking'}</button></div></form></>:
-  <><h2>Booking submitted</h2><p className="sub">Save your reference code to track this booking.</p>
-   <div className="found"><h3>{res.code}</h3><p style={{margin:'8px 0 0'}}>{res.route}, {res.date}<br/>{res.type}, {res.breed} · Total ₱{res.total.toLocaleString()}</p></div>
-   <p>We will call {res.phone} to confirm.</p><div className="acts"><a className="btn ghost" href="#track" onClick={onClose}>Track a booking</a><button className="btn" onClick={onClose}>Done</button></div></>}
+  <><h2>Booking request sent</h2><p className="sub">Your request is pending the owner's price quote. It is not confirmed yet.</p>
+   <div className="found"><h3>{res.code}</h3><p style={{margin:'8px 0 0'}}>{res.route}, {res.date}<br/>{res.type}, {res.breed}<br/>Price: waiting for owner quote</p></div>
+   <p>Save the reference code and check this page later with the same phone number. Review and accept the owner's quote there to confirm your booking.</p><div className="acts"><a className="btn ghost" href="#track" onClick={onClose}>Track a booking</a><button className="btn" onClick={onClose}>Done</button></div></>}
  </div></div>)}
 function TripRequest({onClose}){
  const todayManila=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
@@ -189,7 +188,7 @@ function TripRequest({onClose}){
     <label>Breed<input required maxLength="120" value={f.breed} onChange={set('breed')}/></label>
     <label>Age<input required maxLength="40" value={f.age} onChange={set('age')} placeholder="e.g. 3 years"/></label>
     <label>Weight (kg)<input required type="number" min="0.1" max="499" step="0.1" value={f.weight} onChange={set('weight')}/></label>
-    <label className="full">Cage<select value={f.cage} onChange={set('cage')}><option value="own">I have my own cage</option><option value="rent">I may need a cage rental (+₱300 if available)</option></select></label>
+    <label className="full">Cage<select value={f.cage} onChange={set('cage')}><option value="own">I have my own cage</option><option value="rent">I may need a cage rental</option></select></label>
     <label>Full name<input required maxLength="120" value={f.name} onChange={set('name')} autoComplete="name"/></label>
     <label>Mobile number<input required type="tel" maxLength="40" value={f.phone} onChange={set('phone')} autoComplete="tel"/></label>
     <label className="full">Pickup address<input required maxLength="500" value={f.pickup} onChange={set('pickup')}/></label>
@@ -204,10 +203,11 @@ function App(){
  const root=useRef(null);
  const [trips,setTrips]=useState([]),[calendarLoading,setCalendarLoading]=useState(true),[calendarError,setCalendarError]=useState(''),[refresh,setRefresh]=useState(0);
  const [sel,setSel]=useState(today);
- const [book,setBook]=useState(null),[tripRequestOpen,setTripRequestOpen]=useState(false),[q,setQ]=useState(''),[lookupPhone,setLookupPhone]=useState(''),[hit,setHit]=useState(null),[err,setErr]=useState('');
+ const [book,setBook]=useState(null),[tripRequestOpen,setTripRequestOpen]=useState(false),[q,setQ]=useState(''),[lookupPhone,setLookupPhone]=useState(''),[hit,setHit]=useState(null),[err,setErr]=useState(''),[quoteBusy,setQuoteBusy]=useState(false);
  const calendarLoaded=useRef(false);
  useEffect(()=>{let active=true;const load=async()=>{if(!calendarLoaded.current)setCalendarLoading(true);try{const response=await fetch('/api/trips');if(!response.ok)throw new Error('Live schedules are temporarily unavailable. Please try again shortly.');const body=await response.json().catch(()=>null);if(!body||!Array.isArray(body.trips))throw new Error('Live schedules are temporarily unavailable. Please try again shortly.');const next=body.trips.map(normalizeTrip);if(!active)return;setTrips(next);setCalendarError('');setSel(current=>next.some(t=>t.trip_date===dateKey(current))?current:(next.find(t=>t.left>0)?.date||current))}catch(error){if(active)setCalendarError(error.message||'Live schedules are temporarily unavailable.')}finally{if(active){calendarLoaded.current=true;setCalendarLoading(false)}}};load();const timer=setInterval(load,30000);return()=>{active=false;clearInterval(timer)}},[refresh]);
  const look=async e=>{e.preventDefault();setHit(null);setErr('');try{const params=new URLSearchParams({reference:q.trim().toUpperCase(),phone:lookupPhone.trim()});const response=await fetch('/api/booking-status?'+params.toString());const body=await response.json().catch(()=>({}));if(!response.ok)throw new Error(body.error||'Could not look up that booking.');setHit(body.booking)}catch(error){setErr(error.message||'Could not check booking status right now.')}};
+ const respondToQuote=async decision=>{if(!hit||quoteBusy)return;const price=Number(hit.quoted_total_php).toLocaleString('en-PH');const action=decision==='accept'?`Accept the owner's ₱${price} quote? This confirms your booking.`:'Decline this quote? Your booking request will be closed and its seat released.';if(!confirm(action))return;setQuoteBusy(true);setErr('');try{const response=await fetch('/api/booking-status',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({reference:q.trim().toUpperCase(),phone:lookupPhone.trim(),decision})});const body=await response.json().catch(()=>({}));if(!response.ok)throw new Error(body.error||'Could not save your response.');setHit(body.booking)}catch(error){setErr(error.message||'Could not save your response.')}finally{setQuoteBusy(false)}};
  useLayoutEffect(()=>{gsap.registerPlugin(ScrollTrigger);
   const ctx=gsap.context(()=>{if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
    gsap.timeline({defaults:{ease:'power4.out'}}).from('.wm i',{yPercent:110,duration:1.1,stagger:.045})
@@ -217,7 +217,7 @@ function App(){
    gsap.from('.feat .f',{opacity:0,y:50,stagger:.18,duration:1,ease:'power3.out',scrollTrigger:{trigger:'.feat .cols',start:'top 80%'}})},root);
   return()=>ctx.revert()},[]);
  const trip=tripOn(sel,trips);
- const SV=[['Door-to-door pickup','We collect your pet in Surallah, Koronadal or General Santos and hand them over at the destination address.',['Pickup','Drop-off']],['Cage rental','Clean, ventilated cages with fleece lining and a water bowl, for pets that travel without their own.',['+₱300 per trip']],['Health declaration','You confirm your pet is healthy and fit to travel when you book, so we can plan the trip safely.',['At booking']],['Booking tracking','Use your reference code to check the status of your booking any time.',['Reference code']]];
+ const SV=[['Door-to-door pickup','We collect your pet in Surallah, Koronadal or General Santos and hand them over at the destination address.',['Pickup','Drop-off']],['Cage rental','Clean, ventilated cages with fleece lining and a water bowl, for pets that travel without their own. Ask the owner to include rental in your quote.',['Quoted by owner']],['Health declaration','You confirm your pet is healthy and fit to travel when you book, so we can plan the trip safely.',['At booking']],['Booking tracking','Use your reference code to check the status of your booking any time.',['Reference code']]];
  return(<div ref={root}>
  <header className="hero"><div className="wrap" style={{width:'100%'}}>
   <nav className="nav" aria-label="Main"><a className="brand" href="#top"><img src={LOGO} alt="World of Pets logo"/>World of Pets</a>
@@ -242,7 +242,7 @@ function App(){
    <div><h2>Track your booking</h2><p style={{color:'var(--soft)',maxWidth:'36ch'}}>Enter the reference code and phone number used when you booked.</p>
     <form onSubmit={look}><label>Reference code<input value={q} onChange={e=>setQ(e.target.value)} placeholder="WOP-XXXXXXXXXXXX" required/></label><label>Phone number<input type="tel" value={lookupPhone} onChange={e=>setLookupPhone(e.target.value)} placeholder="Your booking phone" required/></label><button className="btn" type="submit">Check status</button></form>
    {err&&<p className="err" role="alert">{err}</p>}
-    {hit&&<div className="found" role="status"><h3>{hit.reference_code}: {hit.status.replace('_',' ')}</h3><p style={{margin:'8px 0 0'}}>{hit.origin} to {hit.destination}<br/>{new Date(hit.departure_at).toLocaleString('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'})}<br/>{hit.pet_type}</p></div>}</div>
+     {hit&&<div className="found" role="status"><h3>{hit.reference_code}: {hit.status.replaceAll('_',' ')}</h3><p style={{margin:'8px 0 0'}}>{hit.origin} to {hit.destination}<br/>{new Date(hit.departure_at).toLocaleString('en-PH',{timeZone:'Asia/Manila',dateStyle:'medium',timeStyle:'short'})}<br/>{hit.pet_type}</p>{hit.quote_status==='offered'?<><p><b>Owner's quote: ₱{Number(hit.quoted_total_php).toLocaleString('en-PH')}</b>{hit.quote_note&&<><br/>{hit.quote_note}</>}<br/>Your booking is still pending. Accept to confirm or decline to release the seat.</p><div className="acts"><button className="btn" type="button" disabled={quoteBusy} onClick={()=>respondToQuote('accept')}>{quoteBusy?'Saving…':'Accept quote'}</button><button className="btn ghost" type="button" disabled={quoteBusy} onClick={()=>respondToQuote('decline')}>Decline quote</button></div></>:hit.quote_status==='accepted'?<p><b>Accepted quote: ₱{Number(hit.quoted_total_php).toLocaleString('en-PH')}</b><br/>Your booking is confirmed.</p>:hit.quote_status==='declined'?<p>The quote was declined and this booking request is closed.</p>:hit.status==='pending'?<p>Waiting for the owner to review your details and provide a price quote. Your booking is not confirmed.</p>:hit.status==='declined'?<p>This booking request was closed by the owner.</p>:null}</div>}</div>
   <div className="pets" style={{justifySelf:'end'}}><img src={PETS} alt="An orange cat and a chocolate puppy looking up"/></div></div></section>
  </main>
  <footer><div className="wrap"><div className="cols">

@@ -57,7 +57,8 @@ async function sendOwnerEmail(env, bookingId) {
     `Departure: ${new Date(trip.departure_at).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}`,
     `Pickup: ${booking.pickup_address}`,
     `Drop-off: ${booking.dropoff_address}`,
-    `Total: PHP ${booking.total_php.toLocaleString('en-PH')}`,
+    'Status: Pending owner price quote. The customer must review and accept the quote before confirmation.',
+    `Existing schedule fare for reference only: PHP ${booking.total_php.toLocaleString('en-PH')}`,
   ];
   const html = `<h2>New pet transport request</h2><p><b>${escapeHtml(booking.reference_code)}</b></p><dl>${lines.slice(1).map((line) => `<dd>${escapeHtml(line)}</dd>`).join('')}</dl>`;
   const sent = await fetch('https://api.resend.com/emails', {
